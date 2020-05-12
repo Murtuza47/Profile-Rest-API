@@ -1,10 +1,18 @@
-from django.shortcuts import render
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework import viewsets
+from rest_framework.authentication import TokenAuthentication #it will generate a random token string whne the user login 
+from rest_framework import filters
+
 # Create your views here.
+from django.shortcuts import render
+from django.contrib.auth import get_user_model
+
 from profiles_api import serializers
+from .permissions import ProfileApiPermission
+
+User = get_user_model()
 
 class HelloAPiView(APIView):
     serializer_class = serializers.HelloSerializer
@@ -52,3 +60,12 @@ class helloAPIViewset(viewsets.ViewSet):
             return Response({'message':message})
         else:
             Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class ProfileApiViewSet(viewsets.ModelViewSet):
+    serializer_class = serializers.ProfileApiSeriallizer
+    queryset = User.objects.all()
+    authentication_classes = (TokenAuthentication,)
+    permission_classes = (ProfileApiPermission,)
+    filter_backends = (filters.SearchFilter,)
+    search_fields = ('name','email')
