@@ -4,15 +4,20 @@ from rest_framework import status
 from rest_framework import viewsets
 from rest_framework.authentication import TokenAuthentication #it will generate a random token string whne the user login 
 from rest_framework import filters
+from rest_framework.authtoken.views import ObtainAuthToken
+from rest_framework.settings import api_settings
+from rest_framework.permissions import IsAuthenticatedOrReadOnly
 
 # Create your views here.
 from django.shortcuts import render
 from django.contrib.auth import get_user_model
 
 from profiles_api import serializers
-from .permissions import ProfileApiPermission
+from profiles_api import models
+from .permissions import ProfileApiUpdatePermission, ProfileFeedUpdatePermission
 
-User = get_user_model()
+
+# User = get_user_model()
 
 class HelloAPiView(APIView):
     serializer_class = serializers.HelloSerializer
@@ -64,8 +69,28 @@ class helloAPIViewset(viewsets.ViewSet):
 
 class ProfileApiViewSet(viewsets.ModelViewSet):
     serializer_class = serializers.ProfileApiSeriallizer
-    queryset = User.objects.all()
+    queryset = models.UserProfile.objects.all()
     authentication_classes = (TokenAuthentication,)
-    permission_classes = (ProfileApiPermission,)
+    permission_classes = (ProfileApiUpdatePermission,)
     filter_backends = (filters.SearchFilter,)
     search_fields = ('name','email')
+
+
+class ProfileLoginView(ObtainAuthToken):
+    """Handle Creating User auth token """
+    renderer_classes = api_settings.DEFAULT_RENDERER_CLASSES #to make it visible
+
+
+class ProfilFeedViewSet(viewsets.ModelViewSet):
+    """Handle Update Delete Post Serializer"""
+    serializer_class = serializers.ProfileFeedSerializer
+    queryset = models.Profile_Feed.objects.all()
+    authentication_classes = (TokenAuthentication,)
+    permission_classes = (
+        ProfileFeedUpdatePermission,
+        IsAuthenticatedOrReadOnly,
+    )
+
+    def perform_create(self, serializer):
+        """Override the save method to filed the current user"""    
+        serializer.save(user_profile=self.request.user)
